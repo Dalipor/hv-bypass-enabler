@@ -133,11 +133,10 @@ hv-bypass-enabler/
 
 ## Contributors & Credits
 
-- **Dalipor** — Creator & Lead Developer
+- **Dalipor** — Creator
 - **Claude** — Core architecture, Slint UI layout & native VBS operations conversion
 - **Antigravity** — System diagnostics, error pipeline, UI refinements & documentation
 - **FitGirl-Repacks** — Reference logic and parameters derived from the `VBS.cmd` hypervisor management workflow
-- **Slint UI** — Next-generation GUI toolkit for Rust
 
 ---
 
