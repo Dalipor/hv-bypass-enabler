@@ -1,4 +1,4 @@
-# ⚡ HV Enabler
+# HV Enabler
 
 <div align="center">
 
@@ -12,22 +12,28 @@
   <b>A sleek, high-performance Windows 11 Fluent utility to inspect, configure, and manage Hypervisor and Virtualization-Based Security (VBS) states.</b>
 </p>
 
+<p align="center">
+  <a href="https://github.com/Dalipor/hv-bypass-enabler/releases/latest">
+    <img src="https://img.shields.io/badge/Download-hv--enabler.exe-ec407a?style=for-the-badge&logo=windows&logoColor=white" alt="Download Latest Release" height="38" />
+  </a>
+</p>
+
 </div>
 
 ---
 
-## 📸 Interface Preview
+## Interface Preview
 
 <div align="center">
 
-### 🖥️ Main Dashboard
+### Main Dashboard
 *Real-time hardware virtualization status, Secure Boot detection, and single-click HV Bypass control.*
 
 ![HV Enabler Dashboard](assets/dashboard.jpg)
 
 <br/>
 
-### 📜 Live Operations Console
+### Live Operations Console
 *Slide-out animated terminal streaming real-time registry and BCD modifications with one-click report export.*
 
 ![HV Enabler Operations Log](assets/operations_log.jpg)
@@ -36,32 +42,32 @@
 
 ---
 
-## ✨ Features
+## Features
 
-- **🛡️ Complete Hypervisor & VBS Bypass Pipeline**
-  - Automates all system changes natively in Rust without relying on fragile external scripts.
+- **Complete Hypervisor & VBS Bypass Pipeline**
+  - Automates all system changes natively in Rust without relying on external scripts.
   - Toggles **Virtualization-Based Security (VBS)** and **Memory Integrity (HVCI)**.
   - Reconfigures **Windows Hypervisor launch parameters** across boot entries via BCD.
   - Disables conflicting virtualization security scenarios (**Credential Guard**, **System Guard**, **HyperGuard**, **Guarded Host**, **HVPT**, and **KVA Shadow**).
 
-- **🔄 Clean Rollback & State Tracking**
+- **Clean Rollback & State Tracking**
   - Tracks previous configurations in `HKLM\SOFTWARE\ManageVBS`.
-  - Reverting settings restores your system back to its exact original state and cleans up all tracking keys.
+  - Reverting settings restores your system back to its exact original state and cleans up tracking keys.
 
-- **⚡ Real-Time Operations Terminal**
+- **Real-Time Operations Terminal**
   - Dropdown log console animated with smooth cubic-bezier transitions.
   - Live progress feedback with distinct color-coded indicators for successful, skipped, or failed steps.
 
-- **📋 One-Click Diagnostic Report**
+- **One-Click Diagnostic Report**
   - Built-in **Copy Report** button instantly grabs a structured breakdown of every operation directly to your Windows clipboard.
 
-- **🎨 Modern Fluent Aesthetics**
+- **Modern Fluent Aesthetics**
   - Inspired by the Windows 11 Settings app with an obsidian and neon-pink accent theme.
   - Pure vector path icons, dynamic radial glow backdrops, and hardware-accelerated rendering powered by **Slint**.
 
 ---
 
-## 🛠️ Operations Breakdown
+## Operations Breakdown
 
 | Module | Target | Action on Enable | Action on Disable (Revert) |
 |---|---|---|---|
@@ -76,7 +82,7 @@
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -89,8 +95,8 @@
 1. Install the official [Rust Toolchain](https://www.rust-lang.org/tools/install) (MSVC default recommended).
 2. Clone this repository:
    ```powershell
-   git clone https://github.com/your-username/hv-enabler.git
-   cd hv-enabler
+   git clone https://github.com/Dalipor/hv-bypass-enabler.git
+   cd hv-bypass-enabler
    ```
 3. Compile the optimized release executable:
    ```powershell
@@ -104,10 +110,10 @@
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
-hv-enabler/
+hv-bypass-enabler/
 ├── assets/             # Screenshots and visual documentation assets
 │   ├── dashboard.jpg
 │   └── operations_log.jpg
@@ -125,7 +131,7 @@ hv-enabler/
 
 ---
 
-## 👥 Contributors & Credits
+## Contributors & Credits
 
 - **Dalipor** — Creator & Lead Developer
 - **Claude** — Core architecture, Slint UI layout & native VBS operations conversion
@@ -135,6 +141,6 @@ hv-enabler/
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).
