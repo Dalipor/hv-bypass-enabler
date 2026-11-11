@@ -1,0 +1,998 @@
+// HV Enabler: dark pink and black, modelled on Windows 11 Settings.
+// Every icon is vector path data; every colour change and movement is animated.
+
+export enum Tone { good, bad, warn, neutral, checking }
+export enum BannerKind { none, restart, error, info, countdown }
+export struct RowView { text: string, tone: Tone }
+export struct LogLine { text: string, tone: Tone }
+
+export global Theme {
+    in-out property <color> bg: #08080c;
+    in-out property <color> sidebar: #0e0e13;
+    in-out property <color> sidebar-border: #201c2a;
+    in-out property <color> card: #14141c;
+    in-out property <color> card-hover: #1b1b25;
+    in-out property <color> card-border: #2a2438;
+    in-out property <color> pink: #c2185b;
+    in-out property <color> pink-light: #ec407a;
+    in-out property <color> pink-deep: #780a32;
+    in-out property <color> text: #f5f5fa;
+    in-out property <color> dim: #8c8c9b;
+    in-out property <color> error: #ff5c7c;
+    in-out property <color> green: #2ecc71;
+    in-out property <color> amber: #ffab40;
+}
+
+// 24 x 24 stroke icons.
+global Icons {
+    in-out property <string> grid: "M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z";
+    in-out property <string> book: "M3.5 5.5 C6.5 4.5 9.5 4.8 12 6.8 C14.5 4.8 17.5 4.5 20.5 5.5 V19 C17.5 18 14.5 18.3 12 20.3 C9.5 18.3 6.5 18 3.5 19 Z M12 6.8 V20.3";
+    in-out property <string> info: "M3 12 A9 9 0 1 0 21 12 A9 9 0 1 0 3 12 Z M12 11 V16.5 M12 7.6 V7.7";
+    in-out property <string> shield: "M12 3 L4.5 6 V11.2 C4.5 15.8 7.7 19.3 12 21 C16.3 19.3 19.5 15.8 19.5 11.2 V6 Z M8.6 12 L11 14.4 L15.4 9.6";
+    in-out property <string> chip: "M7 7 H17 V17 H7 Z M10 10 H14 V14 H10 Z M10 3.5 V7 M14 3.5 V7 M10 17 V20.5 M14 17 V20.5 M3.5 10 H7 M3.5 14 H7 M17 10 H20.5 M17 14 H20.5";
+    in-out property <string> lock: "M7 11 H17 A2 2 0 0 1 19 13 V18 A2 2 0 0 1 17 20 H7 A2 2 0 0 1 5 18 V13 A2 2 0 0 1 7 11 Z M8 11 V8 A4 4 0 0 1 16 8 V11";
+    in-out property <string> refresh: "M20 12 A8 8 0 1 1 17.66 6.34 M20 3.5 V8 H15.5";
+    in-out property <string> restart: "M4 12 A8 8 0 1 0 6.34 6.34 M4 3.5 V8 H8.5";
+    in-out property <string> power: "M12 3 V12 M6.34 6.34 A8 8 0 1 0 17.66 6.34";
+    in-out property <string> warning: "M12 4 L21 20 H3 Z M12 10 V14 M12 17 V17.1";
+}
+
+component Icon inherits Path {
+    in property <string> d;
+    in property <color> tint: Theme.text;
+    in property <length> size: 20px;
+    in property <length> thickness: 1.7px;
+
+    width: root.size;
+    height: root.size;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 24;
+    viewbox-height: 24;
+    commands: root.d;
+    stroke: root.tint;
+    stroke-width: root.thickness;
+    stroke-line-cap: round;
+    stroke-line-join: round;
+}
+
+// Slow, continuous pink-on-black gradient: two soft glows drift on
+// independent cycles so the motion never feels like it repeats.
+component AnimatedBackground inherits Rectangle {
+    property <float> seconds: animation-tick() / 1s;
+
+    clip: true;
+    background: Theme.bg;
+
+    // base tint that slowly rotates, so there is colour movement even
+    // where the glows don't reach
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        opacity: 0.5;
+        background: @linear-gradient(
+            root.seconds * 9deg,
+            Theme.bg 0%,
+            Theme.pink-deep.with-alpha(0.10) 45%,
+            Theme.bg 100%
+        );
+    }
+
+    Rectangle {
+        width: root.width * 1.3;
+        height: root.width * 1.3;
+        x: root.width * (0.5 + 0.34 * Math.cos(root.seconds * 11deg)) - self.width / 2;
+        y: root.height * (0.42 + 0.3 * Math.sin(root.seconds * 14deg)) - self.height / 2;
+        border-radius: self.width / 2;
+        background: @radial-gradient(
+            circle,
+            Theme.pink.with-alpha(0.20) 0%,
+            Theme.pink-deep.with-alpha(0.08) 35%,
+            Theme.bg.with-alpha(0.0) 70%
+        );
+    }
+
+    Rectangle {
+        width: root.width;
+        height: root.width;
+        x: root.width * (0.5 + 0.3 * Math.sin(root.seconds * -8deg)) - self.width / 2;
+        y: root.height * (0.62 + 0.32 * Math.cos(root.seconds * 10deg)) - self.height / 2;
+        border-radius: self.width / 2;
+        background: @radial-gradient(
+            circle,
+            Theme.pink-light.with-alpha(0.14) 0%,
+            Theme.pink-deep.with-alpha(0.05) 40%,
+            Theme.bg.with-alpha(0.0) 70%
+        );
+    }
+}
+
+// Fades and slides a page in when `shown` becomes true.
+component Page inherits Rectangle {
+    in property <bool> shown;
+
+    opacity: root.shown ? 1.0 : 0.0;
+    y: root.shown ? 0px : 14px;
+    visible: root.opacity > 0.01;
+    animate opacity { duration: 220ms; easing: ease-out; }
+    animate y { duration: 280ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+    @children
+}
+
+component NavItem inherits Rectangle {
+    in property <string> label;
+    in property <string> icon;
+    in property <bool> active;
+    callback clicked();
+
+    height: 44px;
+    border-radius: 8px;
+    background: root.active ? Theme.pink-light.with-alpha(0.12) : ta.has-hover ? #ffffff0d : transparent;
+    animate background { duration: 160ms; easing: ease-out; }
+
+    Icon {
+        x: 14px;
+        y: (parent.height - self.height) / 2;
+        d: root.icon;
+        size: 20px;
+        tint: root.active ? Theme.pink-light : Theme.dim;
+        animate tint { duration: 160ms; }
+    }
+
+    Text {
+        x: 46px;
+        y: 0px;
+        height: parent.height;
+        text: root.label;
+        vertical-alignment: center;
+        font-size: 14px;
+        font-weight: root.active ? 600 : 400;
+        color: root.active ? Theme.text : Theme.dim;
+        animate color { duration: 160ms; }
+    }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component Sidebar inherits Rectangle {
+    in-out property <int> page;
+
+    background: Theme.sidebar;
+
+    // right edge
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        background: Theme.sidebar-border;
+    }
+
+    // brand
+    Rectangle {
+        x: 20px;
+        y: 28px;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: @linear-gradient(135deg, Theme.pink-light 0%, Theme.pink-deep 100%);
+        Text {
+            text: "HV";
+            color: white;
+            font-size: 16px;
+            font-weight: 800;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+    Text {
+        x: 72px;
+        y: 29px;
+        text: "HV Enabler";
+        font-size: 16px;
+        font-weight: 700;
+        color: Theme.text;
+    }
+    Text {
+        x: 72px;
+        y: 50px;
+        text: "Hypervisor tools";
+        font-size: 12px;
+        color: Theme.dim;
+    }
+
+    // sliding selection bar (each item is 44px tall with 6px between them)
+    Rectangle {
+        x: 4px;
+        y: 100px + root.page * 50px + 13px;
+        width: 3px;
+        height: 18px;
+        border-radius: 1.5px;
+        background: Theme.pink-light;
+        animate y { duration: 300ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    }
+
+    VerticalLayout {
+        x: 12px;
+        y: 100px;
+        width: parent.width - 24px;
+        height: 144px;
+        spacing: 6px;
+        alignment: start;
+
+        NavItem {
+            label: "Dashboard";
+            icon: Icons.grid;
+            active: root.page == 0;
+            clicked => { root.page = 0; }
+        }
+        NavItem {
+            label: "BIOS guide";
+            icon: Icons.book;
+            active: root.page == 1;
+            clicked => { root.page = 1; }
+        }
+        NavItem {
+            label: "About";
+            icon: Icons.info;
+            active: root.page == 2;
+            clicked => { root.page = 2; }
+        }
+    }
+
+    Text {
+        x: 24px;
+        y: parent.height - 44px;
+        text: "Version 1.0.0";
+        font-size: 12px;
+        color: Theme.dim;
+    }
+}
+
+component HvButton inherits Rectangle {
+    in property <string> text;
+    in property <string> icon;
+    in property <bool> primary: false;
+    in property <bool> enabled: true;
+    callback clicked();
+
+    height: 44px;
+    border-radius: 8px;
+    clip: true;
+    background: root.primary ? Theme.pink : Theme.card;
+    border-width: root.primary ? 0px : 1px;
+    border-color: ta.has-hover && root.enabled ? Theme.pink-light : Theme.card-border;
+    opacity: root.enabled ? 1.0 : 0.38;
+    animate border-color { duration: 160ms; }
+    animate opacity { duration: 160ms; }
+
+    if root.primary : Rectangle {
+        background: @linear-gradient(90deg, Theme.pink 0%, Theme.pink-light 100%);
+    }
+
+    // hover glow
+    Rectangle {
+        background: white;
+        opacity: ta.pressed ? 0.0 : (ta.has-hover && root.enabled ? 0.1 : 0.0);
+        animate opacity { duration: 140ms; }
+    }
+
+    // press shade
+    Rectangle {
+        background: black;
+        opacity: ta.pressed && root.enabled ? 0.28 : 0.0;
+        animate opacity { duration: 90ms; }
+    }
+
+    HorizontalLayout {
+        alignment: center;
+        spacing: 10px;
+
+        if root.icon != "" : VerticalLayout {
+            alignment: center;
+            Icon {
+                d: root.icon;
+                size: 18px;
+                tint: root.primary ? white : Theme.pink-light;
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: 13px;
+            font-weight: 600;
+            color: Theme.text;
+            vertical-alignment: center;
+        }
+    }
+
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component StatusPill inherits Rectangle {
+    in property <string> text;
+    in property <Tone> tone: Tone.neutral;
+
+    property <color> accent: root.tone == Tone.good ? Theme.green
+        : root.tone == Tone.bad ? Theme.pink-light
+        : root.tone == Tone.warn ? Theme.amber
+        : Theme.dim;
+
+    height: 28px;
+    border-radius: 14px;
+    background: root.accent.with-alpha(0.14);
+    border-width: 1px;
+    border-color: root.accent.with-alpha(0.38);
+    // gentle pulse while the system is being checked
+    opacity: root.tone == Tone.checking ? 0.55 + 0.35 * Math.sin(360deg * (animation-tick() / 1.4s)) : 1.0;
+    animate background { duration: 240ms; }
+    animate border-color { duration: 240ms; }
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 14px;
+        spacing: 8px;
+
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: 4px;
+                background: root.accent;
+                animate background { duration: 240ms; }
+            }
+        }
+        Text {
+            text: root.text;
+            color: root.accent;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-alignment: center;
+            animate color { duration: 240ms; }
+        }
+    }
+}
+
+component StatusCard inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> icon;
+    in property <RowView> view;
+
+    height: 76px;
+    border-radius: 8px;
+    background: hover.has-hover ? Theme.card-hover : Theme.card;
+    border-width: 1px;
+    border-color: Theme.card-border;
+    animate background { duration: 160ms; }
+
+    hover := TouchArea { }
+
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 18px;
+        spacing: 16px;
+
+        VerticalLayout {
+            horizontal-stretch: 0;
+            alignment: center;
+            Rectangle {
+                width: 42px;
+                height: 42px;
+                border-radius: 21px;
+                background: root.view.tone == Tone.good ? Theme.green.with-alpha(0.12) : Theme.pink-light.with-alpha(0.12);
+                animate background { duration: 240ms; }
+                Icon {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    d: root.icon;
+                    size: 20px;
+                    tint: root.view.tone == Tone.good ? Theme.green : Theme.pink-light;
+                    animate tint { duration: 240ms; }
+                }
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 3px;
+            Text {
+                text: root.title;
+                color: Theme.text;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            Text {
+                text: root.subtitle;
+                color: Theme.dim;
+                font-size: 12px;
+                overflow: elide;
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 0;
+            alignment: center;
+            StatusPill {
+                text: root.view.text;
+                tone: root.view.tone;
+            }
+        }
+    }
+}
+
+// Slides up from the bottom of the dashboard.
+component Banner inherits Rectangle {
+    in property <BannerKind> kind: BannerKind.none;
+    in property <string> title;
+    in property <string> detail;
+    in property <length> host-height;
+    callback accept();
+    callback dismiss();
+
+    property <bool> shown: root.kind != BannerKind.none;
+    property <color> accent: root.kind == BannerKind.error ? Theme.error
+        : root.kind == BannerKind.countdown ? Theme.amber
+        : root.kind == BannerKind.info ? Theme.dim
+        : Theme.pink-light;
+
+    height: 104px;
+    border-radius: 8px;
+    background: Theme.card;
+    border-width: 1px;
+    border-color: root.accent.with-alpha(0.55);
+    y: root.shown ? root.host-height - root.height : root.host-height + 12px;
+    opacity: root.shown ? 1.0 : 0.0;
+    visible: root.opacity > 0.01;
+    animate y { duration: 320ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    animate opacity { duration: 200ms; easing: ease-out; }
+    animate border-color { duration: 200ms; }
+
+    HorizontalLayout {
+        padding: 18px;
+        spacing: 16px;
+
+        VerticalLayout {
+            horizontal-stretch: 0;
+            alignment: center;
+            Icon {
+                d: root.kind == BannerKind.error ? Icons.warning
+                    : root.kind == BannerKind.info ? Icons.info
+                    : root.kind == BannerKind.countdown ? Icons.power
+                    : Icons.restart;
+                size: 26px;
+                tint: root.accent;
+                animate tint { duration: 200ms; }
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 4px;
+            Text {
+                text: root.title;
+                color: Theme.text;
+                font-size: 14px;
+                font-weight: 700;
+                overflow: elide;
+            }
+            Text {
+                text: root.detail;
+                color: Theme.dim;
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 0;
+            alignment: center;
+            HorizontalLayout {
+                spacing: 8px;
+                if root.kind == BannerKind.restart : HvButton {
+                    primary: true;
+                    text: "Restart now";
+                    width: 128px;
+                    height: 38px;
+                    clicked => { root.accept(); }
+                }
+                HvButton {
+                    text: root.kind == BannerKind.countdown ? "Cancel"
+                        : root.kind == BannerKind.restart ? "Later"
+                        : "Dismiss";
+                    width: 96px;
+                    height: 38px;
+                    clicked => { root.dismiss(); }
+                }
+            }
+        }
+    }
+}
+
+component GuideStep inherits Rectangle {
+    in property <string> number;
+    in property <string> title;
+    in property <string> body;
+
+    border-radius: 8px;
+    background: Theme.card;
+    border-width: 1px;
+    border-color: Theme.card-border;
+
+    HorizontalLayout {
+        padding: 18px;
+        spacing: 16px;
+
+        VerticalLayout {
+            horizontal-stretch: 0;
+            alignment: start;
+            Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: 16px;
+                background: @linear-gradient(135deg, Theme.pink-light 0%, Theme.pink-deep 100%);
+                Text {
+                    text: root.number;
+                    color: white;
+                    font-size: 14px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: start;
+            spacing: 6px;
+            Text {
+                text: root.title;
+                color: Theme.text;
+                font-size: 14px;
+                font-weight: 700;
+            }
+            Text {
+                text: root.body;
+                color: Theme.dim;
+                font-size: 13px;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+// Collapsible log panel that slides up from below the buttons.
+component LogPanel inherits Rectangle {
+    in property <bool> shown;
+    in property <[LogLine]> lines;
+    in property <bool> has-errors;
+    callback close();
+    callback copy-report();
+
+    property <bool> visible-state: root.shown;
+
+    height: root.visible-state ? 220px : 0px;
+    opacity: root.visible-state ? 1.0 : 0.0;
+    visible: root.opacity > 0.01 || root.height > 1px;
+    clip: true;
+    animate height { duration: 280ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    animate opacity { duration: 200ms; easing: ease-out; }
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        background: #0c0c14;
+        border-width: 1px;
+        border-color: root.has-errors ? Theme.error.with-alpha(0.45) : Theme.card-border;
+        animate border-color { duration: 240ms; }
+
+        // Header bar
+        Rectangle {
+            x: 0px;
+            y: 0px;
+            width: 100%;
+            height: 36px;
+            border-radius: 8px;
+            background: #111118;
+
+            HorizontalLayout {
+                padding-left: 14px;
+                padding-right: 8px;
+                spacing: 8px;
+
+                VerticalLayout {
+                    alignment: center;
+                    horizontal-stretch: 1;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        VerticalLayout {
+                            alignment: center;
+                            Rectangle {
+                                width: 8px;
+                                height: 8px;
+                                border-radius: 4px;
+                                background: root.has-errors ? Theme.error : Theme.green;
+                                animate background { duration: 240ms; }
+                            }
+                        }
+                        Text {
+                            text: "Operations Log";
+                            color: Theme.dim;
+                            font-size: 12px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                // Copy Report button
+                VerticalLayout {
+                    alignment: center;
+                    horizontal-stretch: 0;
+                    Rectangle {
+                        width: 100px;
+                        height: 28px;
+                        border-radius: 6px;
+                        background: copy-ta.has-hover ? Theme.card-hover : Theme.card;
+                        border-width: 1px;
+                        border-color: root.has-errors ? Theme.error.with-alpha(0.5) : Theme.card-border;
+                        animate border-color { duration: 160ms; }
+
+                        Text {
+                            text: "Copy Report";
+                            color: root.has-errors ? Theme.error : Theme.dim;
+                            font-size: 11px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            animate color { duration: 160ms; }
+                        }
+                        copy-ta := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.copy-report(); }
+                        }
+                    }
+                }
+
+                // Close button
+                VerticalLayout {
+                    alignment: center;
+                    horizontal-stretch: 0;
+                    Rectangle {
+                        width: 28px;
+                        height: 28px;
+                        border-radius: 6px;
+                        background: close-ta.has-hover ? #ffffff12 : transparent;
+                        animate background { duration: 120ms; }
+
+                        Text {
+                            text: "✕";
+                            color: Theme.dim;
+                            font-size: 13px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                        close-ta := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.close(); }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Scrollable log content
+        Rectangle {
+            x: 0px;
+            y: 36px;
+            width: 100%;
+            height: parent.height - 36px;
+            clip: true;
+
+            Flickable {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                content-height: log-col.preferred-height + 16px;
+
+                log-col := VerticalLayout {
+                    x: 0px;
+                    y: 0px;
+                    width: parent.width;
+                    padding: 10px;
+                    padding-top: 6px;
+                    spacing: 2px;
+
+                    for entry in root.lines : Text {
+                        text: entry.text;
+                        color: entry.tone == Tone.good ? Theme.green
+                            : entry.tone == Tone.bad ? Theme.error
+                            : entry.tone == Tone.warn ? Theme.amber
+                            : entry.tone == Tone.checking ? Theme.pink-light.with-alpha(0.6)
+                            : Theme.dim;
+                        font-size: 11.5px;
+                        font-family: "Consolas";
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component MainWindow inherits Window {
+    title: "HV Enabler";
+    background: Theme.bg;
+    default-font-family: "Segoe UI";
+    preferred-width: 960px;
+    preferred-height: 680px;
+    min-width: 880px;
+    min-height: 660px;
+
+    in-out property <int> page: 0;
+
+    in property <RowView> hv;
+    in property <string> hv-detail;
+    in property <RowView> virt;
+    in property <RowView> sb;
+    in property <string> status-text;
+    in property <bool> status-ready;
+
+    in property <BannerKind> banner-kind: BannerKind.none;
+    in property <string> banner-title;
+    in property <string> banner-detail;
+
+    // Log panel properties
+    in-out property <bool> show-log: false;
+    in property <[LogLine]> log-lines;
+    in-out property <bool> log-has-errors: false;
+
+    callback refresh();
+    callback set-hv(bool);
+    callback reboot-firmware();
+    callback restart-now();
+    callback dismiss-banner();
+    callback cancel-countdown();
+
+    // Log panel callbacks
+    callback toggle-log();
+    callback close-log();
+    callback copy-report();
+
+    property <[string]> titles: ["Hypervisor dashboard", "BIOS setup guide", "About HV Enabler"];
+
+    HorizontalLayout {
+        Sidebar {
+            width: 244px;
+            page <=> root.page;
+        }
+
+        Rectangle {
+            AnimatedBackground {
+                width: 100%;
+                height: 100%;
+            }
+
+            Text {
+                x: 36px;
+                y: 28px;
+                text: root.titles[root.page];
+                font-size: 28px;
+                font-weight: 700;
+                color: Theme.text;
+            }
+            Text {
+                x: 36px;
+                y: 72px;
+                text: root.page == 0 ? root.status-text
+                    : root.page == 1 ? "Step-by-step firmware configuration"
+                    : "Application details";
+                font-size: 13px;
+                color: root.page == 0 && root.status-ready ? Theme.green : Theme.dim;
+                animate color { duration: 240ms; }
+            }
+
+            Rectangle {
+                x: 36px;
+                y: 112px;
+                width: parent.width - 72px;
+                height: parent.height - 112px - 28px;
+
+                // ── Dashboard ──
+                Page {
+                    shown: root.page == 0;
+                    width: parent.width;
+                    height: parent.height;
+
+                    VerticalLayout {
+                        spacing: 10px;
+                        alignment: start;
+
+                        StatusCard {
+                            title: "HV Bypass Enabled";
+                            subtitle: root.hv-detail;
+                            icon: Icons.shield;
+                            view: root.hv;
+                        }
+                        StatusCard {
+                            title: "Virtualization";
+                            subtitle: "SVM or VT-x hardware support";
+                            icon: Icons.chip;
+                            view: root.virt;
+                        }
+                        StatusCard {
+                            title: "Secure Boot";
+                            subtitle: "Must be off before test signing can be enabled";
+                            icon: Icons.lock;
+                            view: root.sb;
+                        }
+
+                        Rectangle { height: 6px; }
+
+                        HorizontalLayout {
+                            spacing: 12px;
+                            HvButton {
+                                primary: true;
+                                text: "Enable HV Bypass";
+                                icon: Icons.shield;
+                                enabled: root.banner-kind == BannerKind.none;
+                                clicked => { root.set-hv(true); }
+                            }
+                            HvButton {
+                                text: "Disable HV Bypass";
+                                icon: Icons.shield;
+                                enabled: root.banner-kind == BannerKind.none;
+                                clicked => { root.set-hv(false); }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 12px;
+                            HvButton {
+                                text: "Refresh status";
+                                icon: Icons.refresh;
+                                enabled: root.banner-kind == BannerKind.none;
+                                clicked => { root.refresh(); }
+                            }
+                            HvButton {
+                                text: "Reboot to BIOS";
+                                icon: Icons.power;
+                                enabled: root.banner-kind == BannerKind.none;
+                                clicked => { root.reboot-firmware(); }
+                            }
+                        }
+
+                        // Log panel (collapsible)
+                        LogPanel {
+                            shown: root.show-log;
+                            lines: root.log-lines;
+                            has-errors: root.log-has-errors;
+                            close => { root.close-log(); }
+                            copy-report => { root.copy-report(); }
+                        }
+                    }
+
+                    Banner {
+                        width: parent.width;
+                        host-height: parent.height;
+                        kind: root.banner-kind;
+                        title: root.banner-title;
+                        detail: root.banner-detail;
+                        accept => { root.restart-now(); }
+                        dismiss => {
+                            if (root.banner-kind == BannerKind.countdown) {
+                                root.cancel-countdown();
+                            } else {
+                                root.dismiss-banner();
+                            }
+                        }
+                    }
+                }
+
+                // ── BIOS guide ──
+                Page {
+                    shown: root.page == 1;
+                    width: parent.width;
+                    height: parent.height;
+
+                    VerticalLayout {
+                        spacing: 10px;
+                        alignment: start;
+
+                        GuideStep {
+                            height: 120px;
+                            number: "1";
+                            title: "Enable virtualization (SVM or VT-x)";
+                            body: "Restart and press Del or F2 to open the BIOS. Under Advanced, CPU Configuration or Peripherals, set SVM Mode (AMD) or Intel Virtualization Technology (Intel) to Enabled.";
+                        }
+                        GuideStep {
+                            height: 120px;
+                            number: "2";
+                            title: "Disable Secure Boot (Optional)";
+                            body: "Open the Security or Boot tab and set Secure Boot to Disabled. Windows won't allow test signing otherwise. Save with F10 and start Windows.";
+                        }
+                        GuideStep {
+                            height: 120px;
+                            number: "3";
+                            title: "Enable HV Bypass";
+                            body: "With virtualization on, go back to the dashboard, choose Enable HV Bypass, then restart.";
+                        }
+                    }
+                }
+
+                // ── About ──
+                Page {
+                    shown: root.page == 2;
+                    width: parent.width;
+                    height: parent.height;
+
+                    Rectangle {
+                        width: parent.width;
+                        height: 220px;
+                        border-radius: 8px;
+                        background: Theme.card;
+                        border-width: 1px;
+                        border-color: Theme.card-border;
+
+                        HorizontalLayout {
+                            padding: 28px;
+                            spacing: 24px;
+
+                            VerticalLayout {
+                                horizontal-stretch: 0;
+                                alignment: start;
+                                Rectangle {
+                                    width: 72px;
+                                    height: 72px;
+                                    border-radius: 18px;
+                                    background: @linear-gradient(135deg, Theme.pink-light 0%, Theme.pink-deep 100%);
+                                    Text {
+                                        text: "HV";
+                                        color: white;
+                                        font-size: 26px;
+                                        font-weight: 800;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+
+                            VerticalLayout {
+                                horizontal-stretch: 1;
+                                alignment: start;
+                                spacing: 6px;
+                                Text {
+                                    text: "HV Enabler";
+                                    font-size: 22px;
+                                    font-weight: 700;
+                                    color: Theme.text;
+                                }
+                                Text {
+                                    text: "Version 1.0.0";
+                                    font-size: 13px;
+                                    color: Theme.pink-light;
+                                }
+                                Text {
+                                    text: "This app makes enabling HV simple. It checks your PC and walks you through every step, easily and effortlessly.\n\nthis Tool Uses the VBS.cmd: special command-line script, which checks your existing settings and modify them to make your system prepared for HV-cracks , Credits to Fitgirl-Repacks.\n\nBuilt with Rust and Slint. Created by Dalipor. Contributors: Claude & Antigravity.";
+                                    font-size: 13px;
+                                    color: Theme.dim;
+                                    wrap: word-wrap;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
