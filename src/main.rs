@@ -44,6 +44,8 @@ fn make_log_line(text: &str) -> LogLine {
 /// What the dashboard knows. `None` means "still checking".
 #[derive(Clone, Copy)]
 struct Model {
+    vbs: Option<Tri>,
+    hyp: Option<Tri>,
     ts: Option<Tri>,
     /// Core isolation (memory integrity).
     ci: Option<Tri>,
@@ -57,6 +59,8 @@ struct Model {
 impl Model {
     const fn new() -> Self {
         Self {
+            vbs: None,
+            hyp: None,
             ts: None,
             ci: None,
             virt: None,
@@ -101,11 +105,10 @@ fn tri_word(t: Option<Tri>) -> &'static str {
 }
 
 fn render(ui: &MainWindow, m: &Model) {
-    // One indicator for both settings. HV needs core isolation OFF and
-    // test signing ON.
-    let hv_ready = m.ci == Some(Tri::Off) && m.ts == Some(Tri::On);
-    let hv_wrong = m.ci == Some(Tri::On) || m.ts == Some(Tri::Off);
-    let hv = if m.ts.is_none() || m.ci.is_none() {
+    // HV Bypass requires VBS to be OFF and Hypervisor to be OFF
+    let hv_ready = m.vbs == Some(Tri::Off) && m.hyp == Some(Tri::Off);
+    let hv_wrong = m.vbs == Some(Tri::On) || m.hyp == Some(Tri::On);
+    let hv = if m.vbs.is_none() || m.hyp.is_none() {
         view("Checking…", Tone::Checking)
     } else if m.pending {
         view("Restart pending", Tone::Warn)
@@ -117,9 +120,9 @@ fn render(ui: &MainWindow, m: &Model) {
         view("Unknown", Tone::Neutral)
     };
     let hv_detail = format!(
-        "Core isolation: {}  ·  Test signing: {}",
-        tri_word(m.ci),
-        tri_word(m.ts)
+        "VBS: {}  ·  Hypervisor: {}",
+        tri_word(m.vbs),
+        tri_word(m.hyp)
     );
     let virt = match m.virt {
         None => view("Checking…", Tone::Checking),
@@ -135,7 +138,7 @@ fn render(ui: &MainWindow, m: &Model) {
         Some(Tri::Unknown) => view("Unknown", Tone::Neutral),
     };
 
-    let checking = m.ts.is_none() || m.ci.is_none() || m.virt.is_none() || m.sb.is_none();
+    let checking = m.vbs.is_none() || m.hyp.is_none() || m.virt.is_none() || m.sb.is_none();
     let ready = hv_ready && m.virt == Some(Tri::On) && m.sb == Some(Tri::Off);
     let status = if checking {
         "Checking system readiness…"
@@ -164,6 +167,8 @@ fn show_banner(ui: &MainWindow, kind: BannerKind, title: &str, detail: &str) {
 /// Re-reads everything off the UI thread so the window stays smooth.
 fn refresh(ui: &MainWindow) {
     let m = update(|m| {
+        m.vbs = None;
+        m.hyp = None;
         m.ts = None;
         m.ci = None;
         m.virt = None;
@@ -173,6 +178,8 @@ fn refresh(ui: &MainWindow) {
 
     let weak = ui.as_weak();
     std::thread::spawn(move || {
+        let vbs = sys::read_vbs();
+        let hyp = sys::read_hypervisor();
         let ts = sys::read_testsigning();
         let ci = sys::read_core_isolation();
         let virt = sys::virtualization();
@@ -182,6 +189,8 @@ fn refresh(ui: &MainWindow) {
         std::thread::sleep(Duration::from_millis(450));
         let _ = weak.upgrade_in_event_loop(move |ui| {
             let m = update(|m| {
+                m.vbs = Some(vbs);
+                m.hyp = Some(hyp);
                 m.ts = Some(ts);
                 m.ci = Some(ci);
                 m.virt = Some(virt);
@@ -322,8 +331,11 @@ fn main() -> Result<(), slint::PlatformError> {
             let Some(ui) = weak.upgrade() else { return };
 
             let word = if enable { "enabled" } else { "disabled" };
-            // HV on  = core isolation off + test signing on.
-            // HV off = core isolation on  + test signing off.
+            let (want_vbs, want_hyp) = if enable {
+                (Tri::Off, Tri::Off)
+            } else {
+                (Tri::On, Tri::On)
+            };
             let (want_ci, want_ts) = if enable {
                 (Tri::Off, Tri::On)
             } else {
@@ -331,7 +343,7 @@ fn main() -> Result<(), slint::PlatformError> {
             };
 
             let current = MODEL.with(|c| c.get());
-            if current.ci == Some(want_ci) && current.ts == Some(want_ts) && !current.pending {
+            if current.vbs == Some(want_vbs) && current.hyp == Some(want_hyp) && !current.pending {
                 show_banner(
                     &ui,
                     BannerKind::Info,
@@ -421,6 +433,8 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
 
                 let result = apply_hv(enable);
+                let vbs = sys::read_vbs();
+                let hyp = sys::read_hypervisor();
                 let ci = sys::read_core_isolation();
                 let ts = sys::read_testsigning();
 
@@ -481,6 +495,8 @@ fn main() -> Result<(), slint::PlatformError> {
                     match result {
                         Ok(()) => {
                             let m = update(|m| {
+                                m.vbs = Some(keep(vbs, want_vbs));
+                                m.hyp = Some(keep(hyp, want_hyp));
                                 m.ci = Some(keep(ci, want_ci));
                                 m.ts = Some(keep(ts, want_ts));
                                 m.pending = true;
@@ -496,6 +512,8 @@ fn main() -> Result<(), slint::PlatformError> {
                         Err(err) => {
                             // Show what actually got changed before the failure.
                             let m = update(|m| {
+                                m.vbs = Some(vbs);
+                                m.hyp = Some(hyp);
                                 m.ci = Some(ci);
                                 m.ts = Some(ts);
                             });

@@ -44,6 +44,33 @@ fn bcdedit(args: &[&str]) -> (i32, String) {
     }
 }
 
+/// Reads the hypervisor launch type from BCD, or checks CPUID hypervisor bit.
+pub fn read_hypervisor() -> Tri {
+    let (code, out) = bcdedit(&["/enum", "{current}"]);
+    if code == 0 {
+        for line in out.lines() {
+            let line = line.trim();
+            if line.to_ascii_lowercase().starts_with("hypervisorlaunchtype") {
+                let value = line
+                    .split_whitespace()
+                    .last()
+                    .unwrap_or("")
+                    .to_ascii_lowercase();
+                return match value.as_str() {
+                    "auto" | "on" => Tri::On,
+                    "off" => Tri::Off,
+                    _ => Tri::Unknown,
+                };
+            }
+        }
+    }
+    if hypervisor_present() {
+        Tri::On
+    } else {
+        Tri::Off
+    }
+}
+
 /// Reads the *configured* test-signing value from the boot configuration.
 /// (A change only becomes active after a restart.)
 pub fn read_testsigning() -> Tri {
@@ -107,6 +134,25 @@ pub fn read_core_isolation() -> Tri {
         Err(_) => return Tri::Unknown,
     };
     match key.get_value::<u32, _>("Enabled") {
+        Ok(1) => Tri::On,
+        Ok(_) => Tri::Off,
+        Err(e) if e.kind() == ErrorKind::NotFound => Tri::Off,
+        Err(_) => Tri::Unknown,
+    }
+}
+
+/// Reads the *configured* Virtualization-Based Security (VBS) state.
+pub fn read_vbs() -> Tri {
+    use std::io::ErrorKind;
+    use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
+
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let key = match hklm.open_subkey(r"SYSTEM\CurrentControlSet\Control\DeviceGuard") {
+        Ok(key) => key,
+        Err(e) if e.kind() == ErrorKind::NotFound => return Tri::Off,
+        Err(_) => return Tri::Unknown,
+    };
+    match key.get_value::<u32, _>("EnableVirtualizationBasedSecurity") {
         Ok(1) => Tri::On,
         Ok(_) => Tri::Off,
         Err(e) if e.kind() == ErrorKind::NotFound => Tri::Off,
