@@ -87,7 +87,6 @@
 ### Prerequisites
 
 - **Windows 10 (1903+) or Windows 11 (64-bit)**
-- **Hardware Virtualization** (AMD SVM / Intel VT-x) enabled in BIOS/UEFI
 - **Administrator Privileges** (required to manage BCD and HKLM registry hives)
 
 ### Building from Source
