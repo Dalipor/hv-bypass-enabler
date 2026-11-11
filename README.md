@@ -9,7 +9,7 @@
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
 <p align="center">
-  <b>A sleek, high-performance Windows 11 Fluent utility to inspect, configure, and manage Hypervisor and Virtualization-Based Security (VBS) states.</b>
+  <b>A utility to inspect, configure, and manage Hypervisor and Virtualization-Based Security (VBS) states.</b>
 </p>
 
 <p align="center">
